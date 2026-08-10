@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Control Panel</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #121212; color: #fff; max-width: 500px; margin: 0 auto; }
+    h2 { color: #ffd700; text-align: center; }
+    .field { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 5px; font-weight: bold; }
+    select, button { width: 100%; padding: 12px; font-size: 1rem; border-radius: 6px; }
+    select { background: #222; color: #fff; border: 1px solid #444; }
+    button { background: #e63946; color: white; border: none; font-weight: bold; font-size: 1.2rem; cursor: pointer; margin-top: 10px; }
+    button:disabled { background: #555; }
+    .status { margin-top: 15px; text-align: center; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+
+  <h2>🎮 Lucky Draw Controller</h2>
+
+  <div class="field">
+    <label>Prize Tier:</label>
+    <select id="category">
+      <option value="Consolation Prize">🎁 Consolation Prize</option>
+      <option value="3rd Prize">🥉 3rd Prize</option>
+      <option value="2nd Prize">🥈 2nd Prize</option>
+      <option value="Grand Prize">🥇 Grand Prize</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label>Number of Winners:</label>
+    <select id="count">
+      <option value="1">1 Winner</option>
+      <option value="3">3 Winners</option>
+      <option value="5" selected>5 Winners</option>
+      <option value="10">10 Winners</option>
+    </select>
+  </div>
+
+  <button id="spinBtn" onclick="triggerRemoteSpin()">🚀 TRIGGER SPIN ON STAGE</button>
+  <div id="status" class="status"></div>
+
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzYcNnG_UaqtmKFbk2yuVARegXQhQWBgAGjelSopRFU5LJmrTiM0wDRQ0p50PMhLQQI/exec";
+
+    async function triggerRemoteSpin() {
+      
+      
+      const btn = document.getElementById("spinBtn");
+      const status = document.getElementById("status");
+      const category = document.getElementById("category").value;
+      const count = parseInt(document.getElementById("count").value);
+
+      btn.disabled = true;
+      status.style.color = "#aaa";
+      status.textContent = "Sending spin signal to stage...";
+
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({
+            action: "sendCommand",
+            command: "START_SPIN",
+            category: category,
+            count: count
+          })
+        });
+
+        const data = await res.json();
+        if (data.status === "success") {
+          status.style.color = "#4E9F3D";
+          status.textContent = "✅ Spin signal sent successfully!";
+        } else {
+          status.style.color = "#D8000C";
+          status.textContent = "Failed to send command.";
+        }
+      } catch (err) {
+        status.style.color = "#D8000C";
+        status.textContent = "Network error sending signal.";
+      } finally {
+        setTimeout(() => { btn.disabled = false; }, 3000);
+      }
+    }
+  </script>
+</body>
+</html>

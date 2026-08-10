@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Annual Dinner Lucky Draw</title>
+  <style>
+    :root {
+      --primary-color: #e63946;
+      --bg-color: #1d3557;
+      --card-bg: #ffffff;
+      --text-color: #1d3557;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 30px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+    h1 { color: var(--primary-color); margin-bottom: 20px; }
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0 20px;
+      border: 2px solid #ccc;
+      border-radius: 6px;
+      font-size: 16px;
+      box-sizing: border-box;
+      text-transform: uppercase;
+    }
+    button {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 14px 20px;
+      font-size: 18px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.3s;
+    }
+    button:disabled { background-color: #ccc; }
+    .status { margin-top: 15px; font-weight: bold; }
+    .draw-stage { margin-top: 30px; border-top: 2px dashed #ccc; padding-top: 20px; }
+    .winner-box {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: var(--primary-color);
+      min-height: 60px;
+      margin: 15px 0;
+      letter-spacing: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>🎉 Lucky Draw Entry</h1>
+    
+    <!-- User Submission View -->
+    <div id="submit-view">
+      <p>Scan successful! Please enter your Staff ID to participate.</p>
+      <input type="text" id="staffId" placeholder="e.g. EMP1234" required />
+      <button id="submitBtn" onclick="submitEntry()">Submit Entry</button>
+      <div id="status" class="status"></div>
+    </div>
+
+    <!-- Live Stage View (Hidden by default, reveal via URL hash #stage) -->
+    <div id="stage-view" class="draw-stage" style="display:none;">
+      <h2>🏆 Stage Draw Display</h2>
+      <p>Total Entries Loaded: <span id="entryCount">0</span></p>
+      <div id="winnerDisplay" class="winner-box">???</div>
+      <button onclick="loadEntries()" style="background-color: #457b9d; margin-bottom:10px;">Refresh List</button>
+      <button onclick="pickWinner()">SPIN & PICK WINNER</button>
+    </div>
+  </div>
+
+  <script>
+    // PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzYcNnG_UaqtmKFbk2yuVARegXQhQWBgAGjelSopRFU5LJmrTiM0wDRQ0p50PMhLQQI/exec"; 
+
+    let entriesPool = [];
+
+    // Check if stage mode is requested via URL hashtag (e.g. your-site.com/#stage)
+    if (window.location.hash === "#stage") {
+      document.getElementById("submit-view").style.display = "none";
+      document.getElementById("stage-view").style.display = "block";
+      loadEntries();
+    }
+
+    // Submit Staff ID
+    async function submitEntry() {
+      const idInput = document.getElementById("staffId");
+      const btn = document.getElementById("submitBtn");
+      const status = document.getElementById("status");
+      const idValue = idInput.value.trim();
+
+      if (!idValue) {
+        status.style.color = "red";
+        status.textContent = "Please enter a valid Staff ID.";
+        return;
+      }
+
+      btn.disabled = true;
+      status.style.color = "#333";
+      status.textContent = "Submitting...";
+
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" }, // Standard text/plain avoids CORS preflight issues with Apps Script
+          body: JSON.stringify({ action: "submitEntry", staffId: idValue })
+        });
+        const data = await res.json();
+
+        if (data.status === "success") {
+          status.style.color = "green";
+          status.textContent = data.message;
+          idInput.value = "";
+        } else if (data.status === "duplicate") {
+          status.style.color = "orange";
+          status.textContent = data.message;
+        } else {
+          status.style.color = "red";
+          status.textContent = data.message || "An error occurred.";
+        }
+      } catch (err) {
+        status.style.color = "red";
+        status.textContent = "Failed to submit. Check internet connection.";
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // Fetch all entries for stage draw
+    async function loadEntries() {
+      const display = document.getElementById("winnerDisplay");
+      display.textContent = "Loading...";
+      try {
+        const res = await fetch(SCRIPT_URL);
+        const data = await res.json();
+        if (data.status === "success") {
+          entriesPool = data.entries;
+          document.getElementById("entryCount").textContent = entriesPool.length;
+          display.textContent = "READY";
+        }
+      } catch (err) {
+        display.textContent = "ERROR";
+      }
+    }
+
+    // Spin animation and select random winner
+    function pickWinner() {
+      if (entriesPool.length === 0) {
+        alert("No entries found! Load the list first.");
+        return;
+      }
+
+      const display = document.getElementById("winnerDisplay");
+      let counter = 0;
+      const totalSpins = 30;
+      const speed = 100; // Milliseconds per shuffle
+
+      // Slot machine animation effect
+      const interval = setInterval(() => {
+        const randomIndex = Math.floor(Math.random() * entriesPool.length);
+        display.textContent = entriesPool[randomIndex];
+        counter++;
+
+        if (counter >= totalSpins) {
+          clearInterval(interval);
+          const winnerIndex = Math.floor(Math.random() * entriesPool.length);
+          const winner = entriesPool[winnerIndex];
+          
+          display.textContent = `🎉 ${winner} 🎉`;
+
+          // Remove winner from local pool so they can't win twice
+          entriesPool.splice(winnerIndex, 1);
+          document.getElementById("entryCount").textContent = entriesPool.length;
+        }
+      }, speed);
+    }
+  </script>
+</body>
+</html>
