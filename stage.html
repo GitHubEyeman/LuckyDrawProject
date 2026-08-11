@@ -3,11 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Casino Slot Stage Display</title>
+  <title>Lucky Draw</title>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Load Rye Font from Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rye&display=swap" rel="stylesheet">
   <style>
     :root {
-      --card-height: 80px;
+      --card-height: 210px;
     }
     .hero {
       position: relative;
@@ -18,28 +22,51 @@
       display: auto;
     }
 
-    .hero h1 {
+    .hero h1,h2,h3 {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      color: white;
+      color: rgb(243, 223, 154);
       margin: 0;
+      width: auto;
+    }
+    .hero h1 {
+      font-family: 'Rye', serif;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+
+      -webkit-text-stroke: 0.1px #422006; /* 2px width with a dark wood-brown outline */
+      
     }
 
     /* 1. Body should take full screen width for the stage display */
     body { 
       font-family: sans-serif; 
       padding: 20px; 
-      /* background: #5d5454;  */
-      background-image: url(images/Background.png);
-      background-attachment: fixed;
-      background-repeat: no-repeat;
-      background-size: cover;
       color: #fff; 
       margin: 0; 
       text-align: center;
       box-sizing: border-box;
+      position: relative;
+      min-height: 100vh;
+    }
+
+    /* 2. Blurred Background Layer */
+    body::before {
+      content: "";
+      position: fixed;
+      top: -10px;
+      left: -10px;
+      right: -10px;
+      bottom: -10px;
+      z-index: -1; /* Sits behind all HTML content */
+      
+      background: url(images/Background.png) no-repeat center center;
+      background-size: cover;
+      
+      /* filter: blur(10px); 
+      transform: scale(1.02);  */
     }
 
     .status-bar {
@@ -67,7 +94,7 @@
       width: 100%;                 /* Takes full width up to max-width */
       max-width: 1000px;            /* Set constant frame width */
       margin: 20px auto;           /* Keep horizontally centered */
-      padding: 160px 80px 100px 80px; /* Adjust padding to frame your reel windows inside the graphic */
+      padding: 170px 80px 80px 70px; /* Adjust padding to frame your reel windows inside the graphic */
       box-sizing: border-box;
     }
 
@@ -91,16 +118,18 @@
       flex-wrap: wrap;
       align-items: center;
       justify-content: center;
-      gap: 20px;
-      min-height: 180px;
-      width: 100%;
+      gap: 10px;
+      min-height: 240px;
+      margin: 20px auto; 
+      width: 80%;
       box-sizing: border-box;
+      /* background-color: #0000004b; */
     }
 
     /* 5. REEL WINDOWS */
     .slot-window {
       height: var(--card-height);
-      width: 170px;
+      width: 125px;
       overflow: hidden;
       position: relative;
       background: rgba(17, 17, 17, 0);
@@ -119,7 +148,7 @@
     .slot-card {
       height: var(--card-height);
       line-height: var(--card-height);
-      font-size: 1.8rem;
+      font-size: 1rem;
       font-weight: bold;
       color: #000000;
       text-align: center;
@@ -132,14 +161,15 @@
   </style>
 </head>
 <body>
+  <br>
     <div class="hero">
       <img src="images/UI_WoodenPanel.png" alt="">
       <h1>LUCKY DRAW</h1>
     </div>
 
     <div class="status-bar">
-      <p style="margin:0;">Eligible Participants: <strong id="poolCount" style="color:#ffd700">0</strong></p>
-      <div id="connectionStatus" class="status-badge status-online">🟢 LIVE CONNECTED</div>
+      <p style="margin:0;">Eligible Participants: <strong id="poolCount" style="color:#423803">0</strong></p>
+      <!-- <div id="connectionStatus" class="status-badge status-online">🟢 LIVE CONNECTED</div> -->
     </div>
 
     <!-- SLOT MACHINE FRAME WRAPPER -->
@@ -154,9 +184,11 @@
 
       <!-- REEL WINDOWS CONTAINER (SITS ON TOP OF PNG) -->
       <div id="slotMachine" class="slot-machine-container">
-        <span style="font-size: 1.5rem; color: #0f0e0e; font-weight: bold;">
-          WAITING FOR CONTROLLER...
-        </span>
+        <div class="hero">
+      <img src="images/UI_WoodenPanel.png" alt="">
+      <h3 style="width: 90%;">WAITING FOR CONTROLLER...</h3>
+    </div>
+        
       </div>
 
     </div>
@@ -238,7 +270,12 @@
       });
 
       const count = predeterminedWinners.length;
-      const cardHeight = 80;
+      
+      const cardHeight = parseFloat(
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--card-height')
+      ) || 80;
+
       const reelStrips = [];
 
       // 2. Build reels using predetermined winners
